@@ -1,0 +1,997 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nexus Chat</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap');
+
+  :root {
+    --bg: #0d0f14;
+    --surface: #151820;
+    --surface2: #1c2030;
+    --border: #252a3a;
+    --accent: #6c63ff;
+    --accent2: #ff6b9d;
+    --accent3: #00d4aa;
+    --text: #e8eaf0;
+    --text-muted: #6b7280;
+    --text-dim: #9ca3af;
+    --sent-bg: linear-gradient(135deg, #6c63ff, #8b84ff);
+    --recv-bg: #1c2030;
+    --online: #00d4aa;
+    --away: #f59e0b;
+    --shadow: 0 8px 32px rgba(0,0,0,0.4);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    height: 100vh;
+    display: flex;
+    overflow: hidden;
+  }
+
+  /* Sidebar */
+  .sidebar {
+    width: 300px;
+    min-width: 300px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .sidebar::before {
+    content: '';
+    position: absolute;
+    top: -80px; left: -80px;
+    width: 200px; height: 200px;
+    background: radial-gradient(circle, rgba(108,99,255,0.12) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .sidebar-header {
+    padding: 24px 20px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .logo {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 22px;
+    letter-spacing: -0.5px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  .logo-icon {
+    width: 32px; height: 32px;
+    background: var(--accent);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    box-shadow: 0 0 20px rgba(108,99,255,0.4);
+  }
+
+  .logo span { color: var(--accent); }
+
+  .search-box {
+    position: relative;
+  }
+
+  .search-box input {
+    width: 100%;
+    padding: 9px 14px 9px 36px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .search-box input:focus { border-color: var(--accent); }
+  .search-box input::placeholder { color: var(--text-muted); }
+
+  .search-icon {
+    position: absolute;
+    left: 12px; top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    font-size: 13px;
+  }
+
+  .section-label {
+    font-family: 'Syne', sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    padding: 16px 20px 8px;
+  }
+
+  .contacts-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 4px 8px;
+  }
+
+  .contacts-list::-webkit-scrollbar { width: 4px; }
+  .contacts-list::-webkit-scrollbar-track { background: transparent; }
+  .contacts-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  .contact-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: background 0.15s;
+    position: relative;
+  }
+
+  .contact-item:hover { background: var(--surface2); }
+  .contact-item.active {
+    background: rgba(108,99,255,0.15);
+    border: 1px solid rgba(108,99,255,0.2);
+  }
+
+  .avatar {
+    width: 42px; height: 42px;
+    border-radius: 13px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 16px;
+    flex-shrink: 0;
+    position: relative;
+  }
+
+  .status-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    position: absolute;
+    bottom: -1px; right: -1px;
+    border: 2px solid var(--surface);
+  }
+
+  .status-dot.online { background: var(--online); box-shadow: 0 0 6px var(--online); }
+  .status-dot.away { background: var(--away); }
+  .status-dot.offline { background: var(--text-muted); }
+
+  .contact-info { flex: 1; min-width: 0; }
+  .contact-name {
+    font-weight: 500;
+    font-size: 14px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .contact-preview {
+    font-size: 12px;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-top: 2px;
+  }
+
+  .contact-meta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+  }
+  .contact-time { font-size: 11px; color: var(--text-muted); }
+  .unread-badge {
+    background: var(--accent);
+    color: white;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 10px;
+  }
+
+  /* Main chat area */
+  .chat-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    position: relative;
+  }
+
+  /* Chat header */
+  .chat-header {
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--surface);
+    backdrop-filter: blur(10px);
+  }
+
+  .chat-header-left { display: flex; align-items: center; gap: 14px; }
+
+  .chat-user-name {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 16px;
+  }
+
+  .chat-user-status {
+    font-size: 12px;
+    color: var(--online);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .chat-user-status::before {
+    content: '';
+    width: 6px; height: 6px;
+    background: var(--online);
+    border-radius: 50%;
+    display: inline-block;
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  .header-actions { display: flex; gap: 8px; }
+
+  .icon-btn {
+    width: 36px; height: 36px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    border-radius: 10px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px;
+    color: var(--text-dim);
+    transition: all 0.2s;
+  }
+
+  .icon-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(108,99,255,0.1);
+  }
+
+  /* Messages */
+  .messages-area {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    background: var(--bg);
+    background-image:
+      radial-gradient(ellipse at 20% 20%, rgba(108,99,255,0.04) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 80%, rgba(255,107,157,0.03) 0%, transparent 50%);
+  }
+
+  .messages-area::-webkit-scrollbar { width: 4px; }
+  .messages-area::-webkit-scrollbar-track { background: transparent; }
+  .messages-area::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  .date-divider {
+    text-align: center;
+    margin: 16px 0 8px;
+  }
+
+  .date-divider span {
+    background: var(--surface2);
+    color: var(--text-muted);
+    font-size: 11px;
+    padding: 4px 12px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    font-weight: 500;
+    letter-spacing: 0.5px;
+  }
+
+  .message-group {
+    display: flex;
+    flex-direction: column;
+    max-width: 68%;
+    gap: 2px;
+    animation: msgIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  @keyframes msgIn {
+    from { opacity: 0; transform: translateY(10px) scale(0.97); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  .message-group.sent { align-self: flex-end; align-items: flex-end; }
+  .message-group.received { align-self: flex-start; align-items: flex-start; }
+
+  .msg-sender-name {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    padding: 0 4px;
+    margin-bottom: 2px;
+    letter-spacing: 0.3px;
+  }
+
+  .message-bubble {
+    padding: 10px 14px;
+    border-radius: 18px;
+    font-size: 14px;
+    line-height: 1.5;
+    position: relative;
+    max-width: 100%;
+    word-break: break-word;
+  }
+
+  .message-group.sent .message-bubble {
+    background: var(--sent-bg);
+    color: white;
+    border-bottom-right-radius: 5px;
+  }
+
+  .message-group.received .message-bubble {
+    background: var(--recv-bg);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-bottom-left-radius: 5px;
+  }
+
+  .message-group.sent .message-bubble:not(:last-child) { border-bottom-right-radius: 18px; }
+  .message-group.received .message-bubble:not(:last-child) { border-bottom-left-radius: 18px; }
+
+  .message-meta {
+    font-size: 10px;
+    color: var(--text-muted);
+    padding: 0 4px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .read-tick { color: var(--accent3); font-size: 12px; }
+
+  /* Typing indicator */
+  .typing-indicator {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 4px 0;
+    animation: msgIn 0.3s ease;
+  }
+
+  .typing-dots {
+    background: var(--recv-bg);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 12px 16px;
+    display: flex;
+    gap: 4px;
+    align-items: center;
+  }
+
+  .typing-dots span {
+    width: 6px; height: 6px;
+    background: var(--text-muted);
+    border-radius: 50%;
+    animation: typingBounce 1.2s infinite;
+  }
+
+  .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+  .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+  @keyframes typingBounce {
+    0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+    30% { transform: translateY(-5px); opacity: 1; }
+  }
+
+  /* Input area */
+  .input-area {
+    padding: 16px 20px;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+  }
+
+  .input-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 8px 8px 8px 16px;
+    transition: border-color 0.2s;
+  }
+
+  .input-row:focus-within { border-color: var(--accent); }
+
+  .input-actions-left { display: flex; gap: 4px; align-items: center; }
+
+  .attach-btn {
+    width: 32px; height: 32px;
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    transition: color 0.2s;
+  }
+  .attach-btn:hover { color: var(--accent); }
+
+  .message-input {
+    flex: 1;
+    background: none;
+    border: none;
+    outline: none;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    resize: none;
+    max-height: 120px;
+    padding: 4px 0;
+    line-height: 1.5;
+  }
+
+  .message-input::placeholder { color: var(--text-muted); }
+
+  .send-btn {
+    width: 38px; height: 38px;
+    background: var(--accent);
+    border: none;
+    border-radius: 12px;
+    color: white;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+    transition: all 0.2s;
+    box-shadow: 0 4px 12px rgba(108,99,255,0.3);
+  }
+
+  .send-btn:hover {
+    background: #7c74ff;
+    transform: scale(1.05);
+    box-shadow: 0 6px 16px rgba(108,99,255,0.5);
+  }
+
+  .send-btn:active { transform: scale(0.96); }
+
+  /* Right panel */
+  .right-panel {
+    width: 260px;
+    min-width: 260px;
+    background: var(--surface);
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    padding: 24px 20px;
+    overflow-y: auto;
+  }
+
+  .right-panel::-webkit-scrollbar { width: 4px; }
+  .right-panel::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  .profile-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 20px;
+  }
+
+  .profile-avatar {
+    width: 72px; height: 72px;
+    border-radius: 20px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 26px;
+    margin-bottom: 12px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    position: relative;
+  }
+
+  .profile-avatar .status-dot {
+    width: 14px; height: 14px;
+    border-width: 3px;
+    bottom: -2px; right: -2px;
+  }
+
+  .profile-name {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 17px;
+    margin-bottom: 4px;
+  }
+
+  .profile-role {
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  .info-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 0;
+    font-size: 13px;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+  }
+
+  .info-row .icon {
+    color: var(--accent);
+    font-size: 14px;
+    width: 20px;
+    text-align: center;
+  }
+
+  .info-row .label { color: var(--text-muted); font-size: 11px; }
+  .info-row .value { color: var(--text); }
+
+  .shared-media-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    margin-top: 8px;
+  }
+
+  .media-thumb {
+    aspect-ratio: 1;
+    border-radius: 8px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    cursor: pointer;
+    transition: border-color 0.2s;
+  }
+
+  .media-thumb:hover { border-color: var(--accent); }
+
+  /* Emoji reactions */
+  .reaction-bar {
+    display: flex;
+    gap: 6px;
+    padding: 4px 0 0 4px;
+    flex-wrap: wrap;
+  }
+
+  .reaction {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 2px 8px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex; align-items: center; gap: 4px;
+  }
+
+  .reaction:hover { border-color: var(--accent); background: rgba(108,99,255,0.1); }
+  .reaction.mine { border-color: var(--accent); background: rgba(108,99,255,0.15); }
+
+  /* Notification toast */
+  .toast {
+    position: fixed;
+    top: 20px; right: 20px;
+    background: var(--surface2);
+    border: 1px solid var(--accent);
+    border-radius: 14px;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    z-index: 1000;
+    box-shadow: var(--shadow);
+    animation: toastIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), toastOut 0.3s ease 3.7s forwards;
+    max-width: 300px;
+  }
+
+  @keyframes toastIn { from { opacity: 0; transform: translateX(30px) scale(0.9); } to { opacity: 1; transform: none; } }
+  @keyframes toastOut { to { opacity: 0; transform: translateX(30px); } }
+
+  .toast-avatar {
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  .toast-content .toast-name { font-size: 13px; font-weight: 600; }
+  .toast-content .toast-msg { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+  /* Color scheme helpers */
+  .c1 { background: linear-gradient(135deg, #6c63ff22, #6c63ff44); color: #a29bff; }
+  .c2 { background: linear-gradient(135deg, #ff6b9d22, #ff6b9d44); color: #ff9dbe; }
+  .c3 { background: linear-gradient(135deg, #00d4aa22, #00d4aa44); color: #4dffd6; }
+  .c4 { background: linear-gradient(135deg, #f59e0b22, #f59e0b44); color: #fbbf24; }
+  .c5 { background: linear-gradient(135deg, #3b82f622, #3b82f644); color: #93c5fd; }
+
+  @media (max-width: 900px) {
+    .right-panel { display: none; }
+  }
+  @media (max-width: 600px) {
+    .sidebar { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<div class="sidebar">
+  <div class="sidebar-header">
+    <div class="logo">
+      <div class="logo-icon">⚡</div>
+      Nexus<span>Chat</span>
+    </div>
+    <div class="search-box">
+      <span class="search-icon">🔍</span>
+      <input type="text" placeholder="Search conversations..." id="searchInput" oninput="filterContacts(this.value)">
+    </div>
+  </div>
+
+  <div class="section-label">Messages</div>
+
+  <div class="contacts-list" id="contactsList">
+    <!-- Contacts injected by JS -->
+  </div>
+</div>
+
+<!-- Chat Area -->
+<div class="chat-area">
+  <div class="chat-header">
+    <div class="chat-header-left">
+      <div class="avatar c2" id="headerAvatar" style="width:40px;height:40px;border-radius:12px;font-size:15px;font-family:'Syne',sans-serif;font-weight:700;display:flex;align-items:center;justify-content:center;">SR</div>
+      <div>
+        <div class="chat-user-name" id="headerName">Sara Reyes</div>
+        <div class="chat-user-status" id="headerStatus">Online</div>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button class="icon-btn" title="Voice call" onclick="showToast('📞', 'Calling Sara...', 'c2')">📞</button>
+      <button class="icon-btn" title="Video call" onclick="showToast('📹', 'Starting video...', 'c2')">📹</button>
+      <button class="icon-btn" title="Search messages">🔎</button>
+    </div>
+  </div>
+
+  <div class="messages-area" id="messagesArea">
+    <!-- Messages injected by JS -->
+  </div>
+
+  <div class="input-area">
+    <div class="input-row">
+      <button class="attach-btn" title="Attach file">📎</button>
+      <button class="attach-btn" title="Emoji">😊</button>
+      <textarea class="message-input" id="messageInput" placeholder="Type a message..." rows="1"
+        onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+      <button class="send-btn" onclick="sendMessage()" title="Send">➤</button>
+    </div>
+  </div>
+</div>
+
+<!-- Right Panel -->
+<div class="right-panel">
+  <div class="profile-card">
+    <div class="profile-avatar c2" id="profileAvatar">
+      SR
+      <div class="status-dot online"></div>
+    </div>
+    <div class="profile-name" id="profileName">Sara Reyes</div>
+    <div class="profile-role" id="profileRole">Product Designer · @sara</div>
+  </div>
+
+  <div style="margin-bottom:16px;">
+    <div class="info-row">
+      <span class="icon">📍</span>
+      <div><div class="label">Location</div><div class="value">San Francisco, CA</div></div>
+    </div>
+    <div class="info-row">
+      <span class="icon">🕐</span>
+      <div><div class="label">Local Time</div><div class="value" id="localTime">—</div></div>
+    </div>
+    <div class="info-row">
+      <span class="icon">🔗</span>
+      <div><div class="label">Status</div><div class="value" style="color:var(--online)">Available</div></div>
+    </div>
+  </div>
+
+  <div class="section-label" style="padding:0 0 8px;">Shared Media</div>
+  <div class="shared-media-grid">
+    <div class="media-thumb">🖼️</div>
+    <div class="media-thumb">📄</div>
+    <div class="media-thumb">🎵</div>
+    <div class="media-thumb">📊</div>
+    <div class="media-thumb">🗂️</div>
+    <div class="media-thumb">📸</div>
+  </div>
+</div>
+
+<!-- Toast container -->
+<div id="toastContainer"></div>
+
+<script>
+const contacts = [
+  { id: 1, name: 'Sara Reyes', initials: 'SR', color: 'c2', status: 'online', role: 'Product Designer · @sara', preview: 'Sounds great! 🚀', time: '2m', unread: 0, location: 'San Francisco, CA' },
+  { id: 2, name: 'Alex Kim', initials: 'AK', color: 'c1', status: 'online', role: 'Frontend Dev · @alex', preview: 'Can you review the PR?', time: '15m', unread: 3, location: 'Seoul, KR' },
+  { id: 3, name: 'Jordan Lee', initials: 'JL', color: 'c3', status: 'away', role: 'Data Scientist · @jordan', preview: 'The model is training...', time: '1h', unread: 1, location: 'Berlin, DE' },
+  { id: 4, name: 'Priya Nair', initials: 'PN', color: 'c4', status: 'online', role: 'UX Researcher · @priya', preview: 'User testing done!', time: '3h', unread: 0, location: 'Mumbai, IN' },
+  { id: 5, name: 'Dev Team', initials: 'DT', color: 'c5', status: 'online', role: 'Group · 8 members', preview: 'Build passed ✅', time: '5h', unread: 12, location: 'Distributed' },
+];
+
+const conversations = {
+  1: [
+    { id: 'r1', type: 'received', text: 'Hey! Did you see the new design specs I uploaded?', time: '10:24 AM', read: true },
+    { id: 's1', type: 'sent', text: 'Just checked them — they look amazing! The new navigation flow is so clean.', time: '10:26 AM', read: true },
+    { id: 'r2', type: 'received', text: 'Thanks! I was thinking we could also update the mobile breakpoints. Want to hop on a quick call?', time: '10:28 AM', read: true, reactions: [{ emoji: '👍', count: 1, mine: true }] },
+    { id: 's2', type: 'sent', text: 'Sure! Give me 5 mins to finish this commit 😄', time: '10:29 AM', read: true },
+    { id: 'r3', type: 'received', text: 'Perfect, no rush! Also — I pushed the Figma link to the project channel if you wanna share it with the team.', time: '10:31 AM', read: true },
+    { id: 's3', type: 'sent', text: 'Will do. Sounds great! 🚀', time: '10:32 AM', read: true },
+  ],
+  2: [
+    { id: 'r1', type: 'received', text: 'Hey, can you review the PR I opened for the auth flow? It fixes the token refresh bug.', time: '9:45 AM', read: true },
+    { id: 's1', type: 'sent', text: 'On it! Assigning myself now.', time: '9:48 AM', read: true },
+    { id: 'r2', type: 'received', text: 'Thanks! There are some edge cases I want to discuss too.', time: '9:50 AM', read: false },
+    { id: 'r3', type: 'received', text: 'Can you review the PR?', time: '9:51 AM', read: false },
+  ],
+  3: [
+    { id: 'r1', type: 'received', text: 'The model is training on the new dataset. ETA ~2 hours.', time: '8:00 AM', read: true },
+    { id: 's1', type: 'sent', text: 'Great, let me know the accuracy when it finishes!', time: '8:03 AM', read: true },
+    { id: 'r2', type: 'received', text: 'Will do! Early signs look promising 📈', time: '8:04 AM', read: false },
+  ],
+  4: [
+    { id: 'r1', type: 'received', text: 'We finished the user testing sessions today. 12 participants, great insights!', time: 'Yesterday', read: true },
+    { id: 's1', type: 'sent', text: 'Awesome! Would love to see the report when it\'s ready.', time: 'Yesterday', read: true },
+    { id: 'r2', type: 'received', text: 'User testing done! Will send the Notion doc by EOD.', time: '7:20 AM', read: true },
+  ],
+  5: [
+    { id: 'r1', type: 'received', text: 'CI pipeline updated. New checks added for linting and type safety.', time: '6:00 AM', read: true, sender: 'Alex' },
+    { id: 'r2', type: 'received', text: 'Deploying to staging now...', time: '6:30 AM', read: true, sender: 'Jordan' },
+    { id: 'r3', type: 'received', text: 'Build passed ✅ Ready for review!', time: '6:45 AM', read: false, sender: 'Bot' },
+  ],
+};
+
+let activeContact = 1;
+let typingTimers = {};
+
+function renderContacts(list = contacts) {
+  const el = document.getElementById('contactsList');
+  el.innerHTML = list.map(c => `
+    <div class="contact-item ${c.id === activeContact ? 'active' : ''}" onclick="switchContact(${c.id})">
+      <div class="avatar ${c.color}" style="position:relative">
+        ${c.initials}
+        <div class="status-dot ${c.status}"></div>
+      </div>
+      <div class="contact-info">
+        <div class="contact-name">${c.name}</div>
+        <div class="contact-preview">${c.preview}</div>
+      </div>
+      <div class="contact-meta">
+        <div class="contact-time">${c.time}</div>
+        ${c.unread > 0 ? `<div class="unread-badge">${c.unread}</div>` : ''}
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderMessages() {
+  const area = document.getElementById('messagesArea');
+  const msgs = conversations[activeContact] || [];
+
+  let html = `<div class="date-divider"><span>Today</span></div>`;
+  let lastType = null, lastSender = null;
+
+  msgs.forEach((msg, i) => {
+    const isGroup = msg.type === lastType && msg.sender === lastSender;
+    const isLast = i === msgs.length - 1 || msgs[i+1].type !== msg.type;
+
+    if (!isGroup) {
+      if (lastType !== null) html += `</div>`;
+      const sender = msg.sender || (msg.type === 'received' ? contacts.find(c=>c.id===activeContact)?.name : 'You');
+      html += `<div class="message-group ${msg.type}" id="mg_${i}">`;
+      if (msg.type === 'received' && contacts.find(c=>c.id===activeContact)?.role.includes('members')) {
+        html += `<div class="msg-sender-name">${sender}</div>`;
+      }
+    }
+
+    html += `<div class="message-bubble">${msg.text}</div>`;
+
+    if (msg.reactions) {
+      html += `<div class="reaction-bar">` + msg.reactions.map(r =>
+        `<span class="reaction ${r.mine?'mine':''}">${r.emoji} ${r.count}</span>`
+      ).join('') + `</div>`;
+    }
+
+    if (isLast) {
+      html += `<div class="message-meta">${msg.time}${msg.type === 'sent' ? `<span class="read-tick">${msg.read ? '✓✓' : '✓'}</span>` : ''}</div>`;
+    }
+
+    lastType = msg.type;
+    lastSender = msg.sender;
+  });
+
+  if (msgs.length > 0) html += `</div>`;
+  area.innerHTML = html;
+  area.scrollTop = area.scrollHeight;
+}
+
+function switchContact(id) {
+  activeContact = id;
+  const c = contacts.find(x => x.id === id);
+
+  // Update header
+  const headerAvatar = document.getElementById('headerAvatar');
+  headerAvatar.className = `avatar ${c.color}`;
+  headerAvatar.style.cssText = 'width:40px;height:40px;border-radius:12px;font-size:15px;font-family:"Syne",sans-serif;font-weight:700;display:flex;align-items:center;justify-content:center;';
+  headerAvatar.textContent = c.initials;
+  document.getElementById('headerName').textContent = c.name;
+  document.getElementById('headerStatus').textContent = c.status === 'online' ? 'Online' : c.status === 'away' ? 'Away' : 'Offline';
+  document.getElementById('headerStatus').style.color = c.status === 'online' ? 'var(--online)' : c.status === 'away' ? 'var(--away)' : 'var(--text-muted)';
+
+  // Update profile panel
+  const profileAvatar = document.getElementById('profileAvatar');
+  profileAvatar.className = `profile-avatar ${c.color}`;
+  profileAvatar.innerHTML = `${c.initials}<div class="status-dot ${c.status}"></div>`;
+  document.getElementById('profileName').textContent = c.name;
+  document.getElementById('profileRole').textContent = c.role;
+
+  // Clear unread
+  const contact = contacts.find(x => x.id === id);
+  if (contact) contact.unread = 0;
+
+  renderContacts();
+  renderMessages();
+}
+
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+}
+
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+}
+
+function sendMessage() {
+  const input = document.getElementById('messageInput');
+  const text = input.value.trim();
+  if (!text) return;
+
+  const msg = {
+    id: 's_' + Date.now(),
+    type: 'sent',
+    text,
+    time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+    read: false
+  };
+
+  conversations[activeContact] = conversations[activeContact] || [];
+  conversations[activeContact].push(msg);
+
+  // Update preview
+  const c = contacts.find(x => x.id === activeContact);
+  if (c) { c.preview = text.length > 25 ? text.slice(0, 25) + '...' : text; c.time = 'now'; }
+
+  input.value = '';
+  input.style.height = 'auto';
+  renderMessages();
+
+  // Simulate reply after delay
+  setTimeout(() => simulateTyping(), 1200 + Math.random() * 800);
+}
+
+function simulateTyping() {
+  const area = document.getElementById('messagesArea');
+  const typingEl = document.createElement('div');
+  typingEl.className = 'typing-indicator';
+  typingEl.id = 'typingEl';
+  typingEl.innerHTML = `<div class="typing-dots"><span></span><span></span><span></span></div>`;
+  area.appendChild(typingEl);
+  area.scrollTop = area.scrollHeight;
+
+  const delay = 1500 + Math.random() * 1000;
+  setTimeout(() => {
+    const el = document.getElementById('typingEl');
+    if (el) el.remove();
+
+    const replies = [
+      "Got it! I'll take a look at that right away.",
+      "That makes sense. Let me think about it for a second.",
+      "Absolutely! This is really coming together 🎉",
+      "Nice work! How about we sync tomorrow to review the progress?",
+      "👍 Thanks for the update!",
+      "Hm, interesting. Can you share more details?",
+      "On it! Will let you know once I've reviewed.",
+    ];
+
+    const reply = {
+      id: 'r_' + Date.now(),
+      type: 'received',
+      text: replies[Math.floor(Math.random() * replies.length)],
+      time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+      read: false,
+    };
+
+    conversations[activeContact].push(reply);
+    const c = contacts.find(x => x.id === activeContact);
+    if (c) { c.preview = reply.text.length > 25 ? reply.text.slice(0, 25) + '...' : reply.text; c.time = 'now'; }
+
+    renderMessages();
+    renderContacts();
+  }, delay);
+}
+
+function filterContacts(q) {
+  if (!q) { renderContacts(); return; }
+  renderContacts(contacts.filter(c => c.name.toLowerCase().includes(q.toLowerCase())));
+}
+
+function showToast(icon, msg, color) {
+  const c = contacts.find(x => x.id === activeContact);
+  const container = document.getElementById('toastContainer');
+  const toast = document.createElement('div');
+  toast.className = 'toast';
+  toast.innerHTML = `
+    <div class="toast-avatar ${color}">${icon}</div>
+    <div class="toast-content">
+      <div class="toast-name">${c?.name || 'Notification'}</div>
+      <div class="toast-msg">${msg}</div>
+    </div>
+  `;
+  container.appendChild(toast);
+  setTimeout(() => toast.remove(), 4100);
+}
+
+function updateTime() {
+  document.getElementById('localTime').textContent = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZoneName: 'short' });
+}
+
+// Init
+renderContacts();
+renderMessages();
+updateTime();
+setInterval(updateTime, 10000);
+
+// Simulate incoming message notification after 8s
+setTimeout(() => {
+  const c = contacts.find(x => x.id === 2);
+  if (c && activeContact !== 2) {
+    c.unread++;
+    c.preview = 'Just pushed an update 🔥';
+    c.time = 'now';
+    conversations[2].push({ id: 'auto', type: 'received', text: 'Just pushed an update 🔥', time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }), read: false });
+    renderContacts();
+    showToast('AK', 'Just pushed an update 🔥', 'c1');
+  }
+}, 8000);
+</script>
+</body>
+</html>
