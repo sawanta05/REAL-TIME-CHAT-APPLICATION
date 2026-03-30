@@ -47,3 +47,9 @@ Online learning platforms where students and instructors communicate through cha
 Social networking applications that require messaging features.
 
 In conclusion, this project demonstrates how modern web technologies can be used to build an interactive chat interface. It provides a practical understanding of front-end development, user interface design, and dynamic web application functionality.
+
+*OUTPUT*
+
+<img width="1920" height="1080" alt="Image" src="https://github.com/user-attachments/assets/65e1eb64-e70d-4f08-ba4c-f21e6141fe3e" />
+
+<img width="1920" height="1080" alt="Image" src="https://github.com/user-attachments/assets/45b40392-b6ff-4e4a-9f4f-1fc9f61f0929" />
